@@ -58,9 +58,9 @@ def login():
     if current_user.is_authenticated:
         return redirect(url_for('dashboard'))
     if request.method == 'POST':
-        username = request.form['username'].lower()  # 
+        username = request.form['username'].lower()
         password = request.form['password']
-        user = db.users.find_one({'name': {'$regex': '^' + username + '$', '$options': 'i'}}) 
+        user = db.users.find_one({'name': {'$regex': '^' + username + '$', '$options': 'i'}})
         if user and check_password_hash(user['password'], password):
             login_user(User(str(user['_id']), user['name'], user['role']))
             flash('Logged in successfully.', 'success')
@@ -75,6 +75,21 @@ def logout():
     flash('Logged out successfully.', 'success')
     return redirect(url_for('login'))
 
+@app.route('/change_password', methods=['GET', 'POST'])
+@login_required
+def change_password():
+    if request.method == 'POST':
+        new_password = request.form['new_password']
+        if new_password:
+            db.users.update_one(
+                {'_id': ObjectId(current_user.id)},
+                {'$set': {'password': generate_password_hash(new_password)}}
+            )
+            flash('Password changed successfully.', 'success')
+            return redirect(url_for('dashboard'))
+        flash('Please enter a new password.', 'error')
+    return render_template('change_password.html')
+
 
 ################################################################# Routes 
 @app.route('/')
@@ -87,6 +102,18 @@ def index():
 @login_required
 def dashboard():
     return render_template('dashboard.html', user=current_user)
+
+@app.route('/wallet')
+@login_required
+def wallet():
+    return render_template('wallet.html', user=current_user)
+
+@app.route('/post_chore', methods=['POST'])
+@login_required
+@roles_required('Parent')
+def post_chore():
+    flash('Chore posting not implemented yet.', 'error')
+    return redirect(url_for('dashboard'))
 
 
 ################################################################# Server
